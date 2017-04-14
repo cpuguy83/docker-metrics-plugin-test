@@ -1,0 +1,4 @@
+rootfs
+make.sh
+Dockerfile.pluginbuild
+config.json

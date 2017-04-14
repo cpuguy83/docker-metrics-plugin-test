@@ -1,0 +1,16 @@
+FROM debian:jessie AS prom
+RUN apt-get update && apt-get install -y curl
+RUN curl -SLf https://github.com/prometheus/prometheus/releases/download/v1.5.2/prometheus-1.5.2.linux-amd64.tar.gz > /prom.tar.gz
+RUN mkdir /prom && tar -zxvf /prom.tar.gz -C /prom --strip-components=1
+
+FROM golang AS plugin
+RUN mkdir -p /go/src/github.com/cpuguy83/docker-metrics-plugin-test
+COPY . /go/src/github.com/cpuguy83/docker-metrics-plugin-test
+RUN cd /go/src/github.com/cpuguy83/docker-metrics-plugin-test  && go get && CGO_ENABLED=0 go build -tags netgo -o metrics
+RUN mkdir -p /run/docker
+
+FROM scratch
+COPY --from=prom /prom/ /
+COPY --from=plugin /go/src/github.com/cpuguy83/docker-metrics-plugin-test/metrics /
+COPY --from=plugin /run/docker /run/docker
+ENTRYPOINT ["/metrics"]

@@ -1,0 +1,15 @@
+{
+	"description": "prometheus collector plugin",
+	"documentation": "-",
+	"entrypoint": ["/metrics"],
+	"PropagatedMount": "/run/docker",
+	"interface": {
+		"types": ["docker.metricscollector/1.0"],
+		"socket": "metrics.sock"
+	},
+	"Network": {
+		"Type": "host"
+	}
+}
+
+
