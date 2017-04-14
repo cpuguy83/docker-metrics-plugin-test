@@ -83,5 +83,6 @@ func handlers(h *sdk.Handler) {
 
 	h.HandleFunc("/MetricsCollector.StopMetrics", func(w http.ResponseWriter, r *http.Request) {
 		l.Close()
+		json.NewEncoder(w).Encode(map[string]string{})
 	})
 }
