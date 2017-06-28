@@ -5,28 +5,18 @@ import (
 	"io"
 	"net"
 	"net/http"
-	"os/exec"
 	"sync"
-	"syscall"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/docker/go-plugins-helpers/sdk"
 )
 
 var (
-	once sync.Once
-	l    net.Listener
+	l  net.Listener
+	mu sync.Mutex
 )
 
 func main() {
-	cmd := exec.Command("/prometheus")
-	if err := cmd.Start(); err != nil {
-		panic(err)
-	}
-	cmd.SysProcAttr = &syscall.SysProcAttr{
-		Pdeathsig: syscall.SIGTERM,
-	}
-
 	h := sdk.NewHandler(`{"Implements": ["MetricsCollector"]}`)
 	handlers(&h)
 	if err := h.ServeUnix("metrics", 0); err != nil {
@@ -72,17 +62,24 @@ func handlers(h *sdk.Handler) {
 			json.NewEncoder(w).Encode(&res)
 		}()
 
-		once.Do(func() {
-			l, err = net.Listen("tcp", "127.0.0.1:9393")
+		mu.Lock()
+		defer mu.Unlock()
+
+		if l == nil {
+			l, err = net.Listen("tcp", "127.0.0.1:19393")
 			if err != nil {
 				return
 			}
 			go accept(l)
-		})
+		}
 	})
 
 	h.HandleFunc("/MetricsCollector.StopMetrics", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
 		l.Close()
+		l = nil
+		mu.Unlock()
+
 		json.NewEncoder(w).Encode(map[string]string{})
 	})
 }
